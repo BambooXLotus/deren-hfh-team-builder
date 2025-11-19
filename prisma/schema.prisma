@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Users table
+model User {
+  id          String            @id @default(cuid())
+  email       String            @unique
+  name        String?
+  teams       Team[]
+  preferences UserPreferences?
+  createdAt   DateTime          @default(now())
+}
+
+// Characters table (Haikyu volleyball players)
+model Character {
+  id          String   @id @default(cuid())
+  name        String
+  rarity      String   // UR, SSR, SP, SR, R
+  position    String   // S, MB, WS, L, OP
+  school      String   // Karasuno, Nekoma, etc.
+  imageUrl    String?
+  releaseDate DateTime?
+  stats       String   // JSON string: {serve, spike, set, receive, block, save}
+  skills      String   // JSON string: [{name, description}, ...]
+  bonds       String   // JSON string: ["Eccentric Duo", ...]
+  symbols     String   // JSON string: ["quick", "serve", ...]
+
+  @@index([position])
+  @@index([school])
+  @@index([rarity])
+}
+
+// Teams table (user-created teams)
+model Team {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  positions String   // JSON string: {setter: {characterId, items}, ...}
+  bench     String   // JSON string: [{characterId, items}, ...]
+  teamType  String?  // Quick, Power, Block, Reception
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// Synergies table (character bonds/synergies)
+model Synergy {
+  id                  String @id @default(cuid())
+  name                String
+  requiredCharacters  String // JSON string: [characterId1, characterId2, ...]
+  statBonus           String // JSON string: {serve: 100, spike: 50, ...}
+  description         String
+}
+
+// Items table (Memory & Potential Sets)
+model Item {
+  id           String  @id @default(cuid())
+  name         String
+  type         String  // Memory | Potential Set
+  effects      String  // JSON string: ["effect1", "effect2"]
+  imageUrl     String?
+  thumbnailUrl String?
+}
+
+// User preferences table
+model UserPreferences {
+  userId                String @id
+  user                  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recommendationWeights String // JSON string: {synergy: 3, anchor: 1, ...}
+  theme                 String @default("dark")
+}
